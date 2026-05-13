@@ -9,6 +9,6 @@
 	"upload_source_maps": true,
 	"compatibility_flags": ["nodejs_compat"],
 	"triggers": {
-		"crons": ["*/4 * * * *", "*/45 * * * *"],
+		"crons": ["* * * * *", "*/45 * * * *"],
 	},
 }
