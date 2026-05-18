@@ -2,50 +2,89 @@ export default {
 	async fetch(request, env, ctx) {
 		return new Response('Threads Timer Worker is running.');
 	},
+
 	async scheduled(event, env, ctx) {
 		const secret = env.THREADS_SECRET;
 		const baseUrl = 'https://threads-poster-ja32.onrender.com';
 
-		// --- Clash guard: skip the 1-min ping for 3 ticks around a 45-min boundary ---
-		// A "clash" occurs when the current minute-of-day is a multiple of 45.
-		// We suppress the ping 1 minute before, on, and 1 minute after that boundary.
-		if (event.cron === '* * * * *') {
-			const minuteOfDay = Math.floor(Date.now() / 1000 / 60) % (60 * 24);
-			const minuteInCycle = minuteOfDay % 45;
-			// minuteInCycle === 0  → on the boundary
-			// minuteInCycle === 44 → 1 minute before
-			// minuteInCycle === 1  → 1 minute after
-			const isClash = minuteInCycle === 0 || minuteInCycle === 44 || minuteInCycle === 1;
-			if (isClash) {
-				console.log(`Skipping 1-min ping (clash guard, minuteInCycle=${minuteInCycle})`);
-				return;
-			}
-		}
-
-		// --- Always (non-suppressed 1-min ticks + the 45-min tick): ping /trans ---
+		// Always ping /trans
 		try {
 			await fetch(`${baseUrl}/trans`);
 		} catch (e) {
-			console.error('Ping failed:', e);
+			console.error('Ping /trans failed:', e);
 		}
 
-		// --- Only on the 45-minute cron: post content ---
-		if (event.cron === '*/45 * * * *') {
-			const minuteOfDay = Math.floor(Date.now() / 1000 / 60);
-			const useLatest = Math.floor(minuteOfDay / 45) % 2 === 0;
-			const endpoint = useLatest ? '/post/latest' : '/post/carousel';
+		// Check if we're within the active window: 00:30 GMT to 16:30 GMT
+		const now = new Date(Date.now());
+		const gmtMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+		const windowStart = 0 * 60 + 30; // 00:30 GMT = 30 minutes
+		const windowEnd = 16 * 60 + 30; // 16:30 GMT = 990 minutes
+		const inActiveWindow = gmtMinutes >= windowStart && gmtMinutes < windowEnd;
+
+		if (!inActiveWindow) {
+			console.log(
+				`Outside active window (GMT ${now.getUTCHours()}:${String(now.getUTCMinutes()).padStart(2, '0')}), skipping image posts.`,
+			);
+			return;
+		}
+
+		// Count total minutes elapsed since epoch to track cron tick number
+		const minuteOfDay = Math.floor(Date.now() / 1000 / 60);
+
+		// English post: every 35–40 ticks (randomised each cycle)
+		// We use a cycle length randomly picked between 35 and 40.
+		// To keep it deterministic per cycle without state, we seed the cycle
+		// boundary using integer division of minuteOfDay by 35, then add a
+		// stable offset derived from that cycle index.
+		const EN_MIN = 35;
+		const EN_MAX = 40;
+		const enCycleIndex = Math.floor(minuteOfDay / EN_MIN);
+		// Pseudo-random offset in [0, EN_MAX - EN_MIN] based on cycle index
+		const enOffset = enCycleIndex % (EN_MAX - EN_MIN + 1); // 0–5
+		const enCycleLength = EN_MIN + enOffset;
+		const enPositionInCycle = minuteOfDay % enCycleLength;
+
+		// Hindi post: every 45–48 ticks (randomised each cycle)
+		const HI_MIN = 45;
+		const HI_MAX = 48;
+		const hiCycleIndex = Math.floor(minuteOfDay / HI_MIN);
+		const hiOffset = hiCycleIndex % (HI_MAX - HI_MIN + 1); // 0–3
+		const hiCycleLength = HI_MIN + hiOffset;
+		const hiPositionInCycle = minuteOfDay % hiCycleLength;
+
+		// Fire English image post at the start of each EN cycle
+		if (enPositionInCycle === 0) {
+			console.log(`EN cycle ${enCycleIndex} triggered (length=${enCycleLength}), posting English image.`);
 			try {
-				const res = await fetch(`${baseUrl}${endpoint}`, {
+				const res = await fetch(`${baseUrl}/post/image`, {
 					method: 'POST',
 					headers: {
 						'x-internal-secret': secret,
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ limit: 1 }),
+					body: JSON.stringify({ template_path: '1.png', language: 'en' }),
 				});
-				console.log(`Posted to ${endpoint}: ${res.status}`);
+				console.log(`English image post: ${res.status}`);
 			} catch (e) {
-				console.error(`Post to ${endpoint} failed:`, e);
+				console.error('English image post failed:', e);
+			}
+		}
+
+		// Fire Hindi image post at the start of each HI cycle
+		if (hiPositionInCycle === 0) {
+			console.log(`HI cycle ${hiCycleIndex} triggered (length=${hiCycleLength}), posting Hindi image.`);
+			try {
+				const res = await fetch(`${baseUrl}/post/image`, {
+					method: 'POST',
+					headers: {
+						'x-internal-secret': secret,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ template_path: '1.png', language: 'hi' }),
+				});
+				console.log(`Hindi image post: ${res.status}`);
+			} catch (e) {
+				console.error('Hindi image post failed:', e);
 			}
 		}
 	},
