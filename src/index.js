@@ -9,7 +9,7 @@ export default {
 		// --- Language switches: set to true/false to enable/disable ---
 		const enableEn = true;
 		const enableHi = true;
-		const enableTe = false;
+		const enableTe = true;
 
 		const now = new Date(Date.now());
 		const gmtMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
