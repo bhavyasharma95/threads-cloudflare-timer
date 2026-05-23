@@ -5,12 +5,10 @@ export default {
 	async scheduled(event, env, ctx) {
 		const secret = env.THREADS_SECRET;
 		const baseUrl = 'https://threads-poster-ja32.onrender.com';
-
 		// --- Language switches: set to true/false to enable/disable ---
 		const enableEn = true;
 		const enableHi = true;
 		const enableTe = true;
-
 		const now = new Date(Date.now());
 		const gmtMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
 		const windowStart = 0 * 60 + 30;
@@ -35,45 +33,45 @@ export default {
 		const teCycleLength = EN_MIN + (teCycleIndex % (EN_MAX - EN_MIN + 1));
 		const tePositionInCycle = teMinuteShifted % teCycleLength;
 		const isTeTick = teMinuteShifted >= 0 && tePositionInCycle === 0;
-		const isImageTick = (isEnTick && enableEn) || (isHiTick && enableHi) || (isTeTick && enableTe);
-		if (isImageTick && inActiveWindow) {
+		const isCarouselTick = (isEnTick && enableEn) || (isHiTick && enableHi) || (isTeTick && enableTe);
+		if (isCarouselTick && inActiveWindow) {
 			if (isEnTick && enableEn) {
-				console.log(`EN cycle ${enCycleIndex} (length=${enCycleLength}min): posting English image.`);
+				console.log(`EN cycle ${enCycleIndex} (length=${enCycleLength}min): posting English carousel.`);
 				try {
-					const res = await fetch(`${baseUrl}/post/image`, {
+					const res = await fetch(`${baseUrl}/post/carousel`, {
 						method: 'POST',
 						headers: { 'x-internal-secret': secret, 'Content-Type': 'application/json' },
-						body: JSON.stringify({ template_path: '1.png', language: 'en' }),
+						body: JSON.stringify({ language: 'en' }),
 					});
-					console.log(`English image post: ${res.status}`);
+					console.log(`English carousel post: ${res.status}`);
 				} catch (e) {
-					console.error('English image post failed:', e);
+					console.error('English carousel post failed:', e);
 				}
 			}
 			if (isHiTick && enableHi) {
-				console.log(`HI cycle ${hiCycleIndex} (length=${hiCycleLength}min): posting Hindi image.`);
+				console.log(`HI cycle ${hiCycleIndex} (length=${hiCycleLength}min): posting Hindi carousel.`);
 				try {
-					const res = await fetch(`${baseUrl}/post/image`, {
+					const res = await fetch(`${baseUrl}/post/carousel`, {
 						method: 'POST',
 						headers: { 'x-internal-secret': secret, 'Content-Type': 'application/json' },
-						body: JSON.stringify({ template_path: '1.png', language: 'hi' }),
+						body: JSON.stringify({ language: 'hi' }),
 					});
-					console.log(`Hindi image post: ${res.status}`);
+					console.log(`Hindi carousel post: ${res.status}`);
 				} catch (e) {
-					console.error('Hindi image post failed:', e);
+					console.error('Hindi carousel post failed:', e);
 				}
 			}
 			if (isTeTick && enableTe) {
-				console.log(`TE cycle ${teCycleIndex} (length=${teCycleLength}min): posting Telugu image.`);
+				console.log(`TE cycle ${teCycleIndex} (length=${teCycleLength}min): posting Telugu carousel.`);
 				try {
-					const res = await fetch(`${baseUrl}/post/image`, {
+					const res = await fetch(`${baseUrl}/post/carousel`, {
 						method: 'POST',
 						headers: { 'x-internal-secret': secret, 'Content-Type': 'application/json' },
-						body: JSON.stringify({ template_path: '1.png', language: 'te' }),
+						body: JSON.stringify({ language: 'te' }),
 					});
-					console.log(`Telugu image post: ${res.status}`);
+					console.log(`Telugu carousel post: ${res.status}`);
 				} catch (e) {
-					console.error('Telugu image post failed:', e);
+					console.error('Telugu carousel post failed:', e);
 				}
 			}
 		} else {
