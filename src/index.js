@@ -7,7 +7,7 @@ export default {
 		const baseUrl = 'https://threads-poster-ja32.onrender.com';
 		// --- Language switches: set to true/false to enable/disable ---
 		const enableEn = true;
-		const enableHi = true;
+		const enableHi = false;
 		const enableTe = true;
 		const now = new Date(Date.now());
 		const gmtMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
